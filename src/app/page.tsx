@@ -7,22 +7,25 @@ import { useDebouncedValue } from "../hooks/useDebouncedValue";
 import {
   isOverdue,
   normalizeSearchText,
-  getDueBucketCounts,
-  type DueBucket,
+  getJobTab,
+  getJobTabCounts,
+  type JobTab,
 } from "../utils/jobs";
 import { JobsGauge, type GaugeBucket } from "../components/JobsGauge";
 import { DashboardToolbar } from "../components/DashboardToolbar";
 import { DashboardSummary } from "../components/DashboardSummary";
+import { JobsTabs } from "../components/JobsTabs";
 import { JobsTable } from "../components/JobsTable";
 import { Pagination } from "../components/Pagination";
 
 const PAGE_SIZE = 25;
-const BUCKET_ORDER: DueBucket[] = ["overdue", "due_this_week", "due_later"];
+const TAB_ORDER: JobTab[] = ["overdue", "active", "upcoming", "completed"];
 
 export default function DashboardPage() {
   const { jobs, loading, error, lastFetchedAt, refetch } = useJobs();
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(1);
+  const [selectedTab, setSelectedTab] = useState<JobTab>("overdue");
   const debouncedSearch = useDebouncedValue(searchQuery, 200);
 
   const filteredJobs = useMemo(() => {
@@ -36,15 +39,15 @@ export default function DashboardPage() {
   }, [jobs, debouncedSearch]);
 
   const gaugeBuckets = useMemo((): GaugeBucket[] => {
-    const counts = getDueBucketCounts(filteredJobs);
+    const counts = getJobTabCounts(filteredJobs);
     const total = filteredJobs.length;
     if (total === 0)
-      return BUCKET_ORDER.map((bucket) => ({
+      return TAB_ORDER.map((bucket) => ({
         bucket,
         count: 0,
         percent: 0,
       }));
-    return BUCKET_ORDER.map((bucket) => ({
+    return TAB_ORDER.map((bucket) => ({
       bucket,
       count: counts[bucket],
       percent: (counts[bucket] / total) * 100,
@@ -60,19 +63,26 @@ export default function DashboardPage() {
     });
   }, [filteredJobs]);
 
-  const totalPages = Math.max(1, Math.ceil(sortedJobs.length / PAGE_SIZE));
+  const tabCounts = useMemo(() => getJobTabCounts(filteredJobs), [filteredJobs]);
+
+  const tabbedJobs = useMemo(
+    () => sortedJobs.filter((j) => getJobTab(j) === selectedTab),
+    [sortedJobs, selectedTab]
+  );
+
+  const totalPages = Math.max(1, Math.ceil(tabbedJobs.length / PAGE_SIZE));
   const start = (page - 1) * PAGE_SIZE;
   const paginatedJobs = useMemo(
-    () => sortedJobs.slice(start, start + PAGE_SIZE),
-    [sortedJobs, start]
+    () => tabbedJobs.slice(start, start + PAGE_SIZE),
+    [tabbedJobs, start]
   );
 
   const overdueCount = useMemo(
-    () => sortedJobs.filter((j) => isOverdue(j)).length,
-    [sortedJobs]
+    () => tabbedJobs.filter((j) => isOverdue(j)).length,
+    [tabbedJobs]
   );
 
-  useEffect(() => setPage(1), [debouncedSearch]);
+  useEffect(() => setPage(1), [debouncedSearch, selectedTab]);
   useEffect(() => {
     if (page > totalPages) setPage(totalPages);
   }, [page, totalPages]);
@@ -105,14 +115,22 @@ export default function DashboardPage() {
             />
           </section>
 
+          <JobsTabs
+            activeTab={selectedTab}
+            counts={tabCounts}
+            onTabChange={setSelectedTab}
+          />
+
           <DashboardSummary
-            start={start + 1}
-            end={Math.min(start + PAGE_SIZE, sortedJobs.length)}
-            total={sortedJobs.length}
+            start={tabbedJobs.length === 0 ? 0 : start + 1}
+            end={Math.min(start + PAGE_SIZE, tabbedJobs.length)}
+            total={tabbedJobs.length}
             overdueCount={overdueCount}
           />
 
-          <JobsTable jobs={paginatedJobs} />
+          <div id="jobs-table-panel" role="tabpanel" aria-labelledby={`tab-${selectedTab}`}>
+            <JobsTable jobs={paginatedJobs} />
+          </div>
 
           <Pagination
             page={page}

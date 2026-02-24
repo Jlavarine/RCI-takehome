@@ -20,11 +20,6 @@ export function DashboardSummary({
           ? "No jobs"
           : `Showing ${start}–${end} of ${total}`}
       </span>
-      {overdueCount > 0 && (
-        <strong className="dashboard-overdue-badge">
-          {overdueCount} overdue
-        </strong>
-      )}
     </div>
   );
 }
