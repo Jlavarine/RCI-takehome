@@ -33,7 +33,6 @@ export function JobsGauge({ buckets, total }: JobsGaugeProps) {
           >
             <span className="jobs-gauge__box-label">{TAB_LABELS[b.bucket]}</span>
             <span className="jobs-gauge__box-count">0</span>
-            <span className="jobs-gauge__box-pct">0%</span>
           </div>
         ))}
       </div>
@@ -54,7 +53,6 @@ export function JobsGauge({ buckets, total }: JobsGaugeProps) {
         >
           <span className="jobs-gauge__box-label">{TAB_LABELS[b.bucket]}</span>
           <span className="jobs-gauge__box-count">{b.count.toLocaleString()}</span>
-          <span className="jobs-gauge__box-pct">{b.percent.toFixed(0)}%</span>
         </div>
       ))}
     </div>

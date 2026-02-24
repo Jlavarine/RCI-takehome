@@ -32,9 +32,6 @@ export function JobsTabs({ activeTab, counts, onTabChange }: JobsTabsProps) {
           onClick={() => onTabChange(tab)}
         >
           <span className="jobs-tabs__label">{TAB_LABELS[tab]}</span>
-          <span className="jobs-tabs__count" aria-label={`${counts[tab]} jobs`}>
-            {counts[tab]}
-          </span>
         </button>
       ))}
     </div>
